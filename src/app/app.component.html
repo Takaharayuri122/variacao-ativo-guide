@@ -1,12 +1,12 @@
 <div class="row">
-  <div class="col-md-4">
-    <h3>data</h3>
-  </div>
-  <div class="col-md-9">
+  <div class="col-md-12 mx-2">
     <canvas baseChart
       [type]="'line'"
       [data]="lineChartData"
-      [legend]="lineChartLegend">
+      [legend]="true"
+      width="900"
+      height="200"
+      [options]="chartOptions">
     </canvas>
   </div>
 </div>

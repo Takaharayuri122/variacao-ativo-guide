@@ -12,56 +12,64 @@ import { ChartConfiguration, ChartOptions, ChartType } from "chart.js";
 export class AppComponent {
   constructor(private financeService: FinanceService) { }
 
+  /**
+   * Data atual
+   */
   private today = dayjs(dayjs().format('YYYY-MM-DD'));
+
+  /**
+   * Data autal -30 dias para pegar o range do mês
+   */
   private lastDate = dayjs(this.today).subtract(30, 'days');
 
-  chartData!: any;
-  exchangeData!: Meta;
 
+  /**
+   * Todos os dados para plotar o gráfico
+   */
   public lineChartData!: ChartConfiguration<'line'>['data'];
 
-  public lineChartLegend = true;
 
-  private labels: string[] = [];
-  private data: number[] = [];
+  private formatedData: any[] = [];
+
+
+  public chartOptions: ChartOptions = {
+    plugins: {
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            let label = context.dataset.label || '';
+            return [
+              ` Ativo: ${label}`,
+              `Valor: R$ ${this.formatedData[context.dataIndex].open}`,
+              `Variação D-1: ${this.formatedData[context.dataIndex].variationDay}`,
+              `Variação primeira data: ${this.formatedData[context.dataIndex].variationForFirst}`
+            ]
+          },
+          title: () => {
+            return ''
+          }
+        }
+      }
+    }
+  }
+
+
+
+  private symbol = 'PETR4.SA';
+
 
   ngOnInit(): void {
     this.getFinanceData();
   }
 
   private getFinanceData() {
-    this.financeService.getData('PETR4.SA', { interval: '1d', period1: this.lastDate.unix(), period2: this.today.unix() }).subscribe({
+    this.financeService.getData(this.symbol, { interval: '1d', period1: this.lastDate.unix(), period2: this.today.unix() }).subscribe({
       next: (response) => {
-        let formated: any[] = [];
-
-        const [data] = response.chart.result;
-        const [{ open, close }] = data.indicators.quote;
-
-
-        open.forEach((item, index) => {
-          let percentageVariation = null;
-          let percentageVariationForFist = null;
-
-          if (index > 0) {
-            percentageVariation = +(((item - open[index - 1]) / open[index - 1]) * 100).toFixed(2);
-            percentageVariationForFist = +(((item - open[0]) / open[0]) * 100).toFixed(2);
-          }
-
-          formated[index] = {
-            open: +item.toFixed(2),
-            date: dayjs.unix(data.timestamp[index]).format('DD/MM/YYYY'),
-            variationDay: (percentageVariation) ? `${percentageVariation}%` : null,
-            variationForFirst: (percentageVariationForFist) ? `${percentageVariationForFist}%` : null
-          };
-
-          this.labels.push(formated[index].date);
-          this.data.push(formated[index].open);
-        });
-
+        this.formatedData = response.formatedData;
         this.lineChartData = {
-          labels: this.labels,
+          labels: response.labels,
           datasets: [{
-            data: this.data,
+            data: response.data,
             label: 'PETR4.SA',
             fill: true,
             tension: 0.5,
